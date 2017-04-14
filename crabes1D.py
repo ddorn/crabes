@@ -1,5 +1,6 @@
 import collections
 import pygame
+from _dummy_thread import start_new_thread
 from pygame import gfxdraw
 from pygame.locals import *
 
@@ -22,7 +23,7 @@ GRID_SIZE = SCREEN_SIZE[1] // 16
 
 
 class Crab:
-    def __init__(self, start, speed):
+    def __init__(self, speed, start):
         self.start = start
         self.speed = speed
         self.t = 0
@@ -133,15 +134,17 @@ def draw_crabs(screen, crabs):
 
 
 
+
 def run():
-    nb_of_crabs = 3  # int(input('number of crabs'))
-    crabs = [(0, 0)] * nb_of_crabs
-    # for i in range(nb_of_crabs):
-    #     start, speed = map(int, input('Starting point, speed: ').split())
-    #     crabs[i] = start, speed
-    crabs = [Crab(1, 2),
-             Crab(3, 0),
-             Crab(-1, 0)]
+
+    with open('config.txt', 'r') as f:
+        config = f.read()
+
+    config = config.split('\n')
+    crabs = []
+    nb_of_crabs = int(config[0])  # int(input('number of crabs'))
+    for i in range(nb_of_crabs):
+        crabs.append(Crab(*map(int, config[i + 1].split())))
 
     crabs_save = [(c.speed, c.start) for c in crabs]
 
