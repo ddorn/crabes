@@ -139,7 +139,7 @@ def run():
     # for i in range(nb_of_crabs):
     #     start, speed = map(int, input('Starting point, speed: ').split())
     #     crabs[i] = start, speed
-    crabs = [Crab(2, 1),
+    crabs = [Crab(1, 2),
              Crab(3, 0),
              Crab(-1, 0)]
 
