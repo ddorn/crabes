@@ -9,6 +9,13 @@ pygame.key.set_repeat(100)
 WHITE = (255, 255, 255)
 GREY_25 = (183, 183, 183)
 BLACK = (0, 0, 0)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
+GREEN = (20, 180, 60)
+ORANGE = (200, 140, 20)
+PURPLE = (200, 30, 180)
+
+CRABS_COLOR = [BLUE, GREEN, ORANGE, RED, PURPLE]
 
 SCREEN_SIZE = (500, 400)
 GRID_SIZE = SCREEN_SIZE[1] // 16
@@ -111,12 +118,19 @@ def update_all_crabs(crabs, collision):
 
     return crabs
 
+
 def draw_crabs(screen, crabs):
-    for c in crabs:
+    for i, c in enumerate(crabs[::-1]):
         for A, B in segments(c.pos_histo):
             x0, y0 = to_screen_coord(*A)
             x1, y1 = to_screen_coord(*B)
-            gfxdraw.line(screen, x0, y0, x1, y1, BLACK)
+            color = CRABS_COLOR[i % len(CRABS_COLOR)]
+            gfxdraw.line(screen, x0, y0, x1, y1, color)
+            gfxdraw.filled_circle(screen, x0, y0, 4, color)
+            gfxdraw.aacircle(screen, x0, y0, 4, color)
+            gfxdraw.filled_circle(screen, x1, y1, 4, color)
+            gfxdraw.aacircle(screen, x1, y1, 4, color)
+
 
 
 def run():
@@ -125,9 +139,9 @@ def run():
     # for i in range(nb_of_crabs):
     #     start, speed = map(int, input('Starting point, speed: ').split())
     #     crabs[i] = start, speed
-    crabs = [Crab(1, 2),
+    crabs = [Crab(2, 1),
              Crab(3, 0),
-             Crab(-1, -2)]
+             Crab(-1, 0)]
 
     crabs_save = [(c.speed, c.start) for c in crabs]
 
