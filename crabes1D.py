@@ -4,7 +4,7 @@ from pygame.locals import *
 from fractions import Fraction
 
 pygame.init()
-pygame.key.set_repeat(100)
+pygame.key.set_repeat(400, 10)
 
 WHITE = (255, 255, 255)
 GREY_25 = (183, 183, 183)
@@ -12,7 +12,7 @@ BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 GREEN = (20, 180, 60)
-ORANGE = (200, 140, 20)
+ORANGE = (255, 127, 20)
 PURPLE = (200, 30, 180)
 
 CRABS_COLOR = [BLUE, GREEN, ORANGE, RED, PURPLE]
@@ -39,7 +39,7 @@ class Crab:
         self.speed *= -1
         self.start = y - self.speed * x
 
-        print(self.id, x, y)
+        # print(self.id, x, y)
 
 def draw_grid(screen):
     for x in range(GRID_SIZE, SCREEN_SIZE[0], GRID_SIZE):
@@ -151,6 +151,7 @@ def draw_crabs(screen, crabs):
 
 
 def run():
+    global SCREEN_SIZE
 
     with open('config.txt', 'r') as f:
         config = f.read()
@@ -163,7 +164,8 @@ def run():
 
     crabs_save = [(c.speed, c.start) for c in crabs]
 
-    screen = pygame.display.set_mode(SCREEN_SIZE)
+    screen = pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
+    pygame.display.set_caption("Crab Simulator")
 
     collisions = 0
     running = True
@@ -175,19 +177,26 @@ def run():
             if event.type == QUIT:
                 running = False
 
+            if event.type == VIDEORESIZE:
+                w, h = event.size
+                w = w // GRID_SIZE * GRID_SIZE  # we want a multiple of GRID_SIZE
+                h = h // (2*GRID_SIZE) * 2 * GRID_SIZE  # we want this to be a multiple = 2*GRID_SIZE
+                SCREEN_SIZE = w, h
+                pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
+
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     running = False
 
                 if event.key == K_LEFT:
                     collisions -= 1
-                    print('#'*20, 'max_colli = ', collisions)
+                    # print('#'*20, 'max_colli = ', collisions)
                     crabs = [Crab(i, *c) for i, c in enumerate(crabs_save)]
                     crabs = update_all_crabs(crabs, collisions)
 
                 if event.key == K_RIGHT:
                     collisions += 1
-                    print('#'*20, 'max_colli = ', collisions)
+                    # print('#'*20, 'max_colli = ', collisions)
                     crabs = [Crab(i, *c) for i, c in enumerate(crabs_save)]
                     crabs = update_all_crabs(crabs, collisions)
 
