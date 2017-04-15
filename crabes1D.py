@@ -2,6 +2,7 @@ import pygame
 from pygame import gfxdraw
 from pygame.locals import *
 from fractions import Fraction
+from time import time
 
 pygame.init()
 pygame.key.set_repeat(400, 10)
@@ -28,6 +29,9 @@ class Crab:
         self.speed = speed
         self.t = 0
         self.pos_histo = [(0, self.start)]
+
+    def __str__(self):
+        return ('(' + str(float(self.start))[:7] + ', ' + str(float(self.speed))[:7] + ')')
 
     def pos(self, t):
         return self.speed * t + self.start
@@ -187,6 +191,13 @@ def run():
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     running = False
+
+                # save picture
+                if event.key == K_s:
+                    name = 'Crabes (' + ','.join(str(Crab(0, *c)) for c in crabs_save) + ").png"
+                    print(name)
+                    print("Image saved to " + name)
+                    pygame.image.save(screen, name)
 
                 if event.key == K_LEFT:
                     collisions -= 1

@@ -1,4 +1,6 @@
 .idea/
+config.txt
+*.png
 
 # Windows image file caches
 Thumbs.db
