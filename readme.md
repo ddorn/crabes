@@ -10,6 +10,7 @@ The gui lays on pygame, so you must have it installed.
 
 ### Commands 
 
-`Right arrow` to reveal one more collision
-`Left arrow` to hide one collision
-`Escape` to quit
+* `Right arrow` to reveal one more collision
+* `Left arrow` to hide one collision
+* `S` to save a screenshots
+* `Escape` to quit
