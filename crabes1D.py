@@ -12,7 +12,7 @@ GREY_25 = (183, 183, 183)
 BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
-GREEN = (20, 180, 60)
+GREEN = (0, 180, 0)
 ORANGE = (255, 127, 20)
 PURPLE = (200, 30, 180)
 
@@ -199,7 +199,7 @@ def run():
                     print("Image saved to " + name)
                     pygame.image.save(screen, name)
 
-                if event.key == K_LEFT:
+                if event.key == K_LEFT and collisions:
                     collisions -= 1
                     # print('#'*20, 'max_colli = ', collisions)
                     crabs = [Crab(i, *c) for i, c in enumerate(crabs_save)]
