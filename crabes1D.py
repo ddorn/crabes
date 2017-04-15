@@ -1,8 +1,7 @@
-import collections
 import pygame
-from _dummy_thread import start_new_thread
 from pygame import gfxdraw
 from pygame.locals import *
+from fractions import Fraction
 
 pygame.init()
 pygame.key.set_repeat(100)
@@ -23,7 +22,8 @@ GRID_SIZE = SCREEN_SIZE[1] // 16
 
 
 class Crab:
-    def __init__(self, speed, start):
+    def __init__(self, i, speed, start):
+        self.id = i
         self.start = start
         self.speed = speed
         self.t = 0
@@ -39,6 +39,7 @@ class Crab:
         self.speed *= -1
         self.start = y - self.speed * x
 
+        print(self.id, x, y)
 
 def draw_grid(screen):
     for x in range(GRID_SIZE, SCREEN_SIZE[0], GRID_SIZE):
@@ -75,7 +76,7 @@ def intersection(line1, line2):
     m, p = line2
 
     if m == a:
-        print('wtf', line1, line2)
+        # print('wtf', line1, line2)
         return float('inf'), float('inf')
 
     else:
@@ -96,7 +97,6 @@ def update_all_crabs(crabs, collision):
         x_inter_min = 100
         for l1, l2 in pairs(lines):
             x, y = intersection(l1, l2)
-            print(x, y)
             if time < x < x_inter_min:
                 x_inter_min = x
                 inter_y = [y]
@@ -104,14 +104,15 @@ def update_all_crabs(crabs, collision):
             elif x == x_inter_min:
                 inter_y.append(y)
 
-        time = x_inter_min
+        time = x_inter_min  # sufficient precision without the floating digits at the end
         colli += 1
 
         for c in crabs:
             if c.pos(time) in inter_y:
                 c.collide(time)
                 pos_now = c.pos_histo[-1]
-                print(pos_now)
+
+                # print(pos_now)
 
     for c in crabs:
         if c.pos_histo[-1][0] != time:
@@ -133,8 +134,6 @@ def draw_crabs(screen, crabs):
             gfxdraw.aacircle(screen, x1, y1, 4, color)
 
 
-
-
 def run():
 
     with open('config.txt', 'r') as f:
@@ -144,7 +143,7 @@ def run():
     crabs = []
     nb_of_crabs = int(config[0])  # int(input('number of crabs'))
     for i in range(nb_of_crabs):
-        crabs.append(Crab(*map(int, config[i + 1].split())))
+        crabs.append(Crab(i, *map(Fraction, config[i + 1].split())))
 
     crabs_save = [(c.speed, c.start) for c in crabs]
 
@@ -166,12 +165,14 @@ def run():
 
                 if event.key == K_LEFT:
                     collisions -= 1
-                    crabs = [Crab(*c) for c in crabs_save]
+                    print('#'*20, 'max_colli = ', collisions)
+                    crabs = [Crab(i, *c) for i, c in enumerate(crabs_save)]
                     crabs = update_all_crabs(crabs, collisions)
 
                 if event.key == K_RIGHT:
                     collisions += 1
-                    crabs = [Crab(*c) for c in crabs_save]
+                    print('#'*20, 'max_colli = ', collisions)
+                    crabs = [Crab(i, *c) for i, c in enumerate(crabs_save)]
                     crabs = update_all_crabs(crabs, collisions)
 
         screen.fill(WHITE)
