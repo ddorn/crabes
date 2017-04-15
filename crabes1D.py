@@ -48,13 +48,25 @@ def draw_grid(screen):
     for y in range(GRID_SIZE, SCREEN_SIZE[1], GRID_SIZE):
         gfxdraw.hline(screen, 0, SCREEN_SIZE[0], y, GREY_25)
 
+    # axes
+    x0, y0 = to_screen_coord(-1, 0)
+    x1, y1 = to_screen_coord(SCREEN_SIZE[0]/GRID_SIZE - 1, 0)
+    gfxdraw.line(screen, x0, y0, x1, y1, BLACK)
+    arrow = [(x1, y1),
+             (x1 - 4, y1 - 4),
+             (x1 - 4, y1 + 4)]
+    gfxdraw.filled_polygon(screen, arrow, BLACK)
+    x, _ = to_screen_coord(0, 0)
+    gfxdraw.vline(screen, x, 0, SCREEN_SIZE[1], BLACK)
 
 def to_screen_coord(x, y):
 
-    # x = 1 when SCREEN_SIZE[0] / 10
+    # x =0 when SCREEN_SIZE[0] / 10
+    x += 1
     x *= GRID_SIZE
     # to have un repère orthonormé
-    y *= GRID_SIZE
+    # minus to have y axe that goes up
+    y *= -GRID_SIZE
     # y = 0 at SCREEN_SIZE[1] / 2
     y += SCREEN_SIZE[1] / 2
 
@@ -123,13 +135,17 @@ def update_all_crabs(crabs, collision):
 
 def draw_crabs(screen, crabs):
     for i, c in enumerate(crabs[::-1]):
+
+        color = CRABS_COLOR[i % len(CRABS_COLOR)]
+
+        x0, y0 = to_screen_coord(*c.pos_histo[0])
+        gfxdraw.filled_circle(screen, x0, y0, 4, color)
+        gfxdraw.aacircle(screen, x0, y0, 4, color)
+
         for A, B in segments(c.pos_histo):
             x0, y0 = to_screen_coord(*A)
             x1, y1 = to_screen_coord(*B)
-            color = CRABS_COLOR[i % len(CRABS_COLOR)]
             gfxdraw.line(screen, x0, y0, x1, y1, color)
-            gfxdraw.filled_circle(screen, x0, y0, 4, color)
-            gfxdraw.aacircle(screen, x0, y0, 4, color)
             gfxdraw.filled_circle(screen, x1, y1, 4, color)
             gfxdraw.aacircle(screen, x1, y1, 4, color)
 
