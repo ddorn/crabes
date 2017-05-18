@@ -4,7 +4,9 @@ from pygame.locals import *
 from fractions import Fraction
 from time import time
 
+from GUI.buttons import SlideBar
 from GUI.draw import *
+from GUI.locals import *
 
 pygame.init()
 # noinspection PyArgumentList
@@ -195,18 +197,48 @@ def get_sub_surfaces(display):
 
     return crabs
 
-def run(values):
+
+def run(setup):
     global SCREEN_SIZE
-    assert isinstance(values, Values)
+    assert isinstance(setup, Setup)
 
     pygame.display.set_caption("Crab Simulator")
     screen = pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
     crabs_screen = get_sub_surfaces(screen)
 
+    def get_funcs(crab):
+        def cmd(value):
+            value = Fraction(value)
+            print(value)
+            setup.wait_and_occupy()
+
+            crab._speed = value
+
+            for c_ in setup.crabs:
+                c_.reset()
+
+            # update_all_crabs(values.crabs, values.max_time)
+
+            setup.free()
+            setup.must_redraw_display()
+
+        def pos():
+            return SCREEN_SIZE[0], crab.id * 40
+
+        return cmd, pos
+
+    speed_setters = []
+    for c in setup.crabs:
+        cmd, pos = get_funcs(c)
+        size = (SETTINGS_SIZE, 30)
+        color = CRABS_COLOR[c.id % len(CRABS_COLOR)]
+        sb = SlideBar(cmd, pos, size, -5, 5, 0.1, color, interval=100, anchor=TOPRIGHT, inital=c.speed, v_type=Fraction)
+        speed_setters.append(sb)
+
     running = True
     while running:
 
-        values.wait_and_occupy()
+        setup.wait_and_occupy()
 
         # read events
         for event in pygame.event.get():
@@ -222,7 +254,7 @@ def run(values):
                 screen = pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
                 crabs_screen = get_sub_surfaces(screen)
 
-                values.must_redraw_display()
+                setup.must_redraw_display()
 
             if event.type == KEYDOWN:
                 # quit
@@ -236,41 +268,54 @@ def run(values):
                     pygame.image.save(screen, name)
 
                 if event.key == K_LEFT:
-                    if values.max_time:
-                        values.max_time -= 1
-                        values.must_redraw_display()
+                    if setup.max_time:
+                        setup.max_time -= 1
+                        setup.must_redraw_display()
 
                 if event.key == K_RIGHT:
-                    values.max_time += 1
-                    values.must_redraw_display()
+                    setup.max_time += 1
+                    setup.must_redraw_display()
 
             if event.type == MOUSEBUTTONDOWN:
                 if event.button == 4:
-                    if values.max_time:
-                        values.max_time -= 1
-                        values.must_redraw_display()
+                    if setup.max_time:
+                        setup.max_time -= 1
+                        setup.must_redraw_display()
 
                 if event.button == 5:
-                    values.max_time += 1
-                    values.must_redraw_display()
+                    setup.max_time += 1
+                    setup.must_redraw_display()
 
-        if values.redraw_display:
-            update_all_crabs(values.crabs, values.max_time)
+                mouse = pygame.mouse.get_pos()
+                for bar in speed_setters:
+                    if mouse in bar:
+                        bar.focus()
+
+            if event.type == MOUSEBUTTONUP:
+                for bar in speed_setters:
+                    bar.unfocus()
+
+        if setup.redraw_display:
+            update_all_crabs(setup.crabs, setup.max_time)
 
             screen.fill(WHITE)
 
             # crabs part
             draw_grid(crabs_screen)
-            draw_crabs(crabs_screen, values.crabs, values.max_time)
+            draw_crabs(crabs_screen, setup.crabs, setup.max_time)
+
+            # settings part
+            for bar in speed_setters:
+                bar.render(screen)
 
             pygame.display.flip()
 
-            values.display_drawn()
+            setup.display_drawn()
 
-        values.free()
+        setup.free()
 
 
-class Values:
+class Setup:
     def __init__(self):
         self.crabs = get_config()
         self.values = [c.speed for c in self.crabs]
@@ -304,8 +349,7 @@ class Values:
 
 
 if __name__ == '__main__':
-    values = Values()
+    setup = Setup()
 
     # pygame interface
-    run(values)
-
+    run(setup)
