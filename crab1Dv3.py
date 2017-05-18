@@ -1,10 +1,10 @@
 import pygame
-from _thread import start_new_thread
 from pygame import gfxdraw
 from pygame.locals import *
 from fractions import Fraction
+from time import time
 
-from tkinter import *
+from GUI.draw import *
 
 pygame.init()
 # noinspection PyArgumentList
@@ -22,6 +22,7 @@ PURPLE = (200, 30, 180)
 CRABS_COLOR = [BLUE, GREEN, ORANGE, RED, PURPLE]
 
 SCREEN_SIZE = (500, 400)
+SETTINGS_SIZE = 150
 GRID_SIZE = SCREEN_SIZE[1] // 16
 
 
@@ -31,7 +32,7 @@ class Crab:
         self.start = start
         self.speed = speed
         self.pos_histo = [(0, self.start)]
-        
+
         self._start = start
         self._speed = speed
 
@@ -58,23 +59,25 @@ class Crab:
         self.pos_histo = [(0, self.start)]
 
 
-def draw_grid(screen):
-    for x in range(GRID_SIZE, SCREEN_SIZE[0], GRID_SIZE):
-        gfxdraw.vline(screen, x, 0, SCREEN_SIZE[1], GREY_25)
+def draw_grid(surf):
+    size = surf.get_size()
 
-    for y in range(GRID_SIZE, SCREEN_SIZE[1], GRID_SIZE):
-        gfxdraw.hline(screen, 0, SCREEN_SIZE[0], y, GREY_25)
+    for x in range(GRID_SIZE, size[0], GRID_SIZE):
+        gfxdraw.vline(surf, x, 0, size[1], GREY_25)
+
+    for y in range(GRID_SIZE, size[1], GRID_SIZE):
+        gfxdraw.hline(surf, 0, size[0], y, GREY_25)
 
     # axes
     x0, y0 = to_screen_coord(-1, 0)
-    x1, y1 = to_screen_coord(SCREEN_SIZE[0] / GRID_SIZE - 1, 0)
-    gfxdraw.line(screen, x0, y0, x1, y1, BLACK)
-    arrow = [(x1, y1),
-             (x1 - 4, y1 - 4),
-             (x1 - 4, y1 + 4)]
-    gfxdraw.filled_polygon(screen, arrow, BLACK)
+    x1, y1 = to_screen_coord(size[0] / GRID_SIZE - 1, 0)
+    gfxdraw.line(surf, x0, y0, x1, y1, BLACK)
+    arrow = [x1, y1,
+             x1 - 4, y1 - 4,
+             x1 - 4, y1 + 4]
+    gfxdraw.filled_trigon(surf, *arrow, BLACK)
     x, _ = to_screen_coord(0, 0)
-    gfxdraw.vline(screen, x, 0, SCREEN_SIZE[1], BLACK)
+    gfxdraw.vline(surf, x, 0, size[1], BLACK)
 
 
 def to_screen_coord(x, y, grid_size=GRID_SIZE):
@@ -105,7 +108,6 @@ def intersection(line1, line2):
     m, p = line2
 
     if m == a:
-        # print('wtf', line1, line2)
         return float('inf'), float('inf')
 
     else:
@@ -141,24 +143,23 @@ def update_all_crabs(crabs, max_time):
                 c.collide(time)
 
 
-def draw_crabs(screen, crabs, max_time):
-    for i, c in enumerate(crabs[::-1]):
+def draw_crabs(surf, crabs, max_time):
+    for c in crabs[::-1]:
 
-        color = CRABS_COLOR[i % len(CRABS_COLOR)]
+        color = CRABS_COLOR[c.id % len(CRABS_COLOR)]
 
         # starting pos
-        x0, y0 = to_screen_coord(*c.pos_histo[0])
-        gfxdraw.filled_circle(screen, x0, y0, 4, color)
-        gfxdraw.aacircle(screen, x0, y0, 4, color)
+        pos = to_screen_coord(*c.pos_histo[0])
+        circle(surf, pos, 4, color)
 
         max_coli = 0
         for a, b in segments(c.pos_histo):
-            x0, y0 = to_screen_coord(*a)
-            x1, y1 = to_screen_coord(*b)
+            real_a = to_screen_coord(*a)
+            real_b = to_screen_coord(*b)
             if b[0] < max_time:
-                gfxdraw.line(screen, x0, y0, x1, y1, color)
-                gfxdraw.filled_circle(screen, x1, y1, 4, color)
-                gfxdraw.aacircle(screen, x1, y1, 4, color)
+
+                line(surf, real_a, real_b, color)
+                circle(surf, real_b, 4, color)
                 max_coli += 1
             else:
                 break
@@ -170,11 +171,10 @@ def draw_crabs(screen, crabs, max_time):
             slope = c.speed * (-1) ** (len(c.pos_histo) - max_coli + 1)
             b = max_time, a[1] + slope * (max_time - a[0])
 
-            x0, y0 = to_screen_coord(*a)
-            x1, y1 = to_screen_coord(*b)
-            gfxdraw.line(screen, x0, y0, x1, y1, color)
-            gfxdraw.filled_circle(screen, x1, y1, 4, color)
-            gfxdraw.aacircle(screen, x1, y1, 4, color)
+            real_a = to_screen_coord(*a)
+            real_b = to_screen_coord(*b)
+            line(surf, real_a, real_b, color)
+            circle(surf, real_b, 4, color)
 
 
 def get_config(file='config.txt'):
@@ -190,22 +190,23 @@ def get_config(file='config.txt'):
     return crabs
 
 
-CRABS = get_config()
+def get_sub_surfaces(display):
+    crabs = display.subsurface((0, 0, SCREEN_SIZE[0] - SETTINGS_SIZE, SCREEN_SIZE[1]))
 
+    return crabs
 
 def run(values):
     global SCREEN_SIZE
     assert isinstance(values, Values)
 
-    screen = pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
     pygame.display.set_caption("Crab Simulator")
-    clock = pygame.time.Clock()
+    screen = pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
+    crabs_screen = get_sub_surfaces(screen)
 
     running = True
     while running:
 
-        values.wait_until_free()
-        values.occupy()
+        values.wait_and_occupy()
 
         # read events
         for event in pygame.event.get():
@@ -218,15 +219,18 @@ def run(values):
                 w = w // GRID_SIZE * GRID_SIZE  # we want a multiple of GRID_SIZE
                 h = h // (2 * GRID_SIZE) * 2 * GRID_SIZE  # we want this to be a multiple = 2*GRID_SIZE
                 SCREEN_SIZE = w, h
-                pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
+                screen = pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
+                crabs_screen = get_sub_surfaces(screen)
+
+                values.must_redraw_display()
 
             if event.type == KEYDOWN:
+                # quit
                 if event.key == K_ESCAPE:
                     running = False
 
                 # save picture
                 if event.key == K_s:
-                    from time import time
                     name = f'Crabes {int(time())}.png'
                     print("Image saved to " + name)
                     pygame.image.save(screen, name)
@@ -234,30 +238,36 @@ def run(values):
                 if event.key == K_LEFT:
                     if values.max_time:
                         values.max_time -= 1
-                        update_all_crabs(values.crabs, values.max_time)
+                        values.must_redraw_display()
 
                 if event.key == K_RIGHT:
                     values.max_time += 1
-                    update_all_crabs(values.crabs, values.max_time)
+                    values.must_redraw_display()
 
             if event.type == MOUSEBUTTONDOWN:
                 if event.button == 4:
                     if values.max_time:
                         values.max_time -= 1
-                        update_all_crabs(values.crabs, values.max_time)
+                        values.must_redraw_display()
 
                 if event.button == 5:
                     values.max_time += 1
-                    update_all_crabs(values.crabs, values.max_time)
+                    values.must_redraw_display()
 
-        screen.fill(WHITE)
-        draw_grid(screen)
-        draw_crabs(screen, values.crabs, values.max_time)
+        if values.redraw_display:
+            update_all_crabs(values.crabs, values.max_time)
+
+            screen.fill(WHITE)
+
+            # crabs part
+            draw_grid(crabs_screen)
+            draw_crabs(crabs_screen, values.crabs, values.max_time)
+
+            pygame.display.flip()
+
+            values.display_drawn()
 
         values.free()
-        clock.tick(60)
-
-        pygame.display.flip()
 
 
 class Values:
@@ -266,57 +276,36 @@ class Values:
         self.values = [c.speed for c in self.crabs]
         self.max_time = 0
         self._modif = False
+        self.redraw_display = True
+        self.last_frame_time = 0
 
-    def wait_until_free(self):
+    def _wait_until_free(self):
         while self._modif:
             pass
-        
-    def occupy(self):
+
+    def wait_and_occupy(self):
+        self._wait_until_free()
         self._modif = True
-        
+
     def free(self):
         self._modif = False
+
+    def must_redraw_display(self):
+        self.redraw_display = True
+
+    def display_drawn(self):
+        self.redraw_display = False
+
+    def fps(self, fps):
+        while time() < self.last_frame_time + 1 / fps:
+            pass
+
+        self.last_frame_time = time()
 
 
 if __name__ == '__main__':
     values = Values()
 
     # pygame interface
-    # start_new_thread(run, (values,))
     run(values)
-    quit()
-    # tk inter inteface to choses values
-    root = Tk()
 
-    def meta_cd(i):
-        def cmd(value):
-            values.wait_until_free()
-            values.occupy()
-
-            c = values.crabs[i]
-            c._speed = Fraction(value)
-
-            for c in values.crabs:
-                c.reset()
-
-            update_all_crabs(values.crabs, values.max_time)
-            print(i, value)
-
-            values.free()
-
-        return cmd
-
-    for i in range(len(values.crabs)):
-    
-        s = Scale(root, orient=HORIZONTAL, length=200, from_=-5.0, to=5.0, resolution=0.001, digits=2, command=meta_cd(i))
-        s.set(float(values.crabs[i].speed))
-        s.pack()
-
-
-    root.mainloop()
-
-"""
-2 1
-0 3
--2 -1
-"""

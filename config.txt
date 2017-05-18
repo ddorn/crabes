@@ -1,17 +1,48 @@
+6
+-1/3 8
+1 7
+3 6
+-3 6
+-1 4
+-1/3 3
+
+
 5
--1/3 4
--1/3 -3
+-1/3 10
+1 9
+2 8
+-3 8
+-1 6
+1/3 5
+
+4
+1/3 8/3
+3 0
+-9 0
+-1 -8
+# stable, 3**i
+
+4
+1/3 8/9
+-1 -8
+3 0
+-9 0
+# half-stable
+
+5
+-1/3 3
+-1/3 -5/3
 1 2
 3 0
 -1 0
-# semi stable
+# half-stable
 
 4
 -1/3 4
 1 2
 3 0
 -1 0
-# semi-stable
+# half-stable
 
 5
 1 2
@@ -19,9 +50,9 @@
 1 0
 3 -1
 1 -2
-# Moving up, but not semi-stable
+# Moving up, but not half-stable
 
-# Just put the config you want on the to of the file
+# Just put the config you want on the top of the file
 
 3
 1 2
@@ -33,6 +64,4 @@
 -3 0
 1 3
 -1 -2
-
-
-
+# not half-stable

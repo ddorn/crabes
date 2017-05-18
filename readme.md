@@ -6,11 +6,11 @@ For now, you can only simulate the movement of crabs on a single line. All crabs
 
 ### Installation
 
-The gui lays on pygame, so you must have it installed.
-
+The gui lays on pygame and my own pygame GUI module, so you must have both installed.
+    
 ### Commands 
 
 * `Right arrow` to reveal one more collision
 * `Left arrow` to hide one collision
-* `S` to save a screenshots
+* `S` to save a screenshot
 * `Escape` to quit
