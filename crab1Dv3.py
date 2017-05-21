@@ -23,9 +23,7 @@ PURPLE = (200, 30, 180)
 
 CRABS_COLOR = [BLUE, GREEN, ORANGE, RED, PURPLE]
 
-SCREEN_SIZE = (500, 400)
 SETTINGS_SIZE = 150
-GRID_SIZE = SCREEN_SIZE[1] // 16
 
 
 class Crab:
@@ -63,16 +61,17 @@ class Crab:
 
 def draw_grid(surf):
     size = surf.get_size()
+    grid_size = setup.grid_size
 
-    for x in range(GRID_SIZE, size[0], GRID_SIZE):
+    for x in range(grid_size, size[0], grid_size):
         gfxdraw.vline(surf, x, 0, size[1], GREY_25)
 
-    for y in range(GRID_SIZE, size[1], GRID_SIZE):
+    for y in range(grid_size, size[1], grid_size):
         gfxdraw.hline(surf, 0, size[0], y, GREY_25)
 
     # axes
     x0, y0 = to_screen_coord(-1, 0)
-    x1, y1 = to_screen_coord(size[0] / GRID_SIZE - 1, 0)
+    x1, y1 = to_screen_coord(size[0] / grid_size - 1, 0)
     gfxdraw.line(surf, x0, y0, x1, y1, BLACK)
     arrow = [x1, y1,
              x1 - 4, y1 - 4,
@@ -82,30 +81,37 @@ def draw_grid(surf):
     gfxdraw.vline(surf, x, 0, size[1], BLACK)
 
 
-def to_screen_coord(x, y, grid_size=GRID_SIZE):
-    # x = 0 when SCREEN_SIZE[0] / 10
+def to_screen_coord(x, y):
+    """ Converts a point in our coordinate space to screen coord """
+
+    # small shift to the right
     x += 1
-    x *= grid_size
-    # to have un repère orthonormé
+    # good proportion
+    x *= setup.grid_size
+
     # minus to have y axe that goes up
-    y *= -grid_size
-    # y = 0 at SCREEN_SIZE[1] / 2
-    y += SCREEN_SIZE[1] / 2
+    y *= -setup.grid_size
+    # zero is at the half of the screen
+    y += setup.screen_size[1] / 2
 
     return int(x), int(y)
 
 
 def pairs(l):
+    """ Yiels all possible ordered pairs of element in a list """
     for i, elt1 in enumerate(l):
         for j, elt2 in enumerate(l[i + 1:]):
             yield elt1, elt2
 
 
 def segments(l):
+    """ Gives all the segments of a list, that is the jouxting pairs of values """
     return zip(l[:-1], l[1:])
 
 
 def intersection(line1, line2):
+    """ Returns th intersection point between two lines, or +inf if ther is no such point. """
+    
     a, b = line1
     m, p = line2
 
@@ -119,8 +125,11 @@ def intersection(line1, line2):
 
 
 def update_all_crabs(crabs, max_time):
-    already_calculated_time = max(c.pos_histo[-1][0] for c in crabs)
-    time = already_calculated_time
+    """ Calculate the crabs positions untill max_time """
+
+    # already calculated time
+    time = max(c.pos_histo[-1][0] for c in crabs)
+
     while time < max_time:
 
         # find the next intersection
@@ -130,22 +139,28 @@ def update_all_crabs(crabs, max_time):
         x_inter_min = max_time
         for l1, l2 in pairs(lines):
             x, y = intersection(l1, l2)
+            
+            # closer in the future
             if time < x < x_inter_min:
                 x_inter_min = x
                 inter_y = [y]
 
-            # multiples intersections
+            # multiples intersections at the same time
             elif x == x_inter_min:
                 inter_y.append(y)
 
-        time = x_inter_min  # sufficient precision without the floating digits at the end
+        # we are in the future of yesterday
+        time = x_inter_min
 
+        # make all crabs which had collide U-turn
         for c in crabs:
             if c.pos(time) in inter_y:
                 c.collide(time)
 
 
 def draw_crabs(surf, crabs, max_time):
+    """ Draw all crabs with max_tme as  x limit """
+    
     for c in crabs[::-1]:
 
         color = CRABS_COLOR[c.id % len(CRABS_COLOR)]
@@ -154,6 +169,7 @@ def draw_crabs(surf, crabs, max_time):
         pos = to_screen_coord(*c.pos_histo[0])
         circle(surf, pos, 4, color)
 
+        # intermediate positions
         max_coli = 0
         for a, b in segments(c.pos_histo):
             real_a = to_screen_coord(*a)
@@ -164,12 +180,13 @@ def draw_crabs(surf, crabs, max_time):
                 circle(surf, real_b, 4, color)
                 max_coli += 1
             else:
+                # do co too far
                 break
 
         # draw what remains
         a = c.pos_histo[max_coli]
         if a[0] != max_time:
-            # parity number of collision before the end gives the phase
+            # parity number of collision before the end gives the phase (up or down)
             slope = c.speed * (-1) ** (len(c.pos_histo) - max_coli + 1)
             b = max_time, a[1] + slope * (max_time - a[0])
 
@@ -193,23 +210,23 @@ def get_config(file='config.txt'):
 
 
 def get_sub_surfaces(display):
-    crabs = display.subsurface((0, 0, SCREEN_SIZE[0] - SETTINGS_SIZE, SCREEN_SIZE[1]))
+    w, h = setup.screen_size
+    crabs = display.subsurface((0, 0, w - SETTINGS_SIZE, h))
 
     return crabs
 
 
 def run(setup):
-    global SCREEN_SIZE
     assert isinstance(setup, Setup)
 
     pygame.display.set_caption("Crab Simulator")
-    screen = pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
+    screen = pygame.display.set_mode(setup.screen_size, RESIZABLE)
     crabs_screen = get_sub_surfaces(screen)
 
+    # set up the speed settenrs
     def get_funcs(crab):
-        def cmd(value):
-            value = Fraction(value)
-            print(value)
+        def cmd(value): 
+            # thread safe
             setup.wait_and_occupy()
 
             crab._speed = value
@@ -217,24 +234,50 @@ def run(setup):
             for c_ in setup.crabs:
                 c_.reset()
 
-            # update_all_crabs(values.crabs, values.max_time)
-
             setup.free()
             setup.must_redraw_display()
 
         def pos():
-            return SCREEN_SIZE[0], crab.id * 40
+            return setup.screen_size[0], crab.id * 40
 
         return cmd, pos
 
-    speed_setters = []
+    slide_bars = []
     for c in setup.crabs:
         cmd, pos = get_funcs(c)
         size = (SETTINGS_SIZE, 30)
         color = CRABS_COLOR[c.id % len(CRABS_COLOR)]
         sb = SlideBar(cmd, pos, size, -5, 5, 0.1, color, interval=100, anchor=TOPRIGHT, inital=c.speed, v_type=Fraction)
-        speed_setters.append(sb)
+        slide_bars.append(sb)
+        
+    # set up the pos setter
+    def get_funcs(crab):
+        def cmd(value):
+            
+            setup.wait_and_occupy()
 
+            crab._start = value
+
+            for c_ in setup.crabs:
+                c_.reset()
+
+
+            setup.free()
+            setup.must_redraw_display()
+
+        def pos():
+            return setup.screen_size[0], setup.screen_size[1] - crab.id * 40
+
+        return cmd, pos
+
+    for c in setup.crabs[::-1]:
+        cmd, pos = get_funcs(c)
+        size = (SETTINGS_SIZE, 30)
+        color = CRABS_COLOR[c.id % len(CRABS_COLOR)]
+        sb = SlideBar(cmd, pos, size, -5, 5, 0.1, color, interval=100, anchor=BOTTOMRIGHT, inital=c.speed, v_type=Fraction)
+        slide_bars.append(sb)
+        
+        
     running = True
     while running:
 
@@ -248,10 +291,11 @@ def run(setup):
 
             if event.type == VIDEORESIZE:
                 w, h = event.size
-                w = w // GRID_SIZE * GRID_SIZE  # we want a multiple of GRID_SIZE
-                h = h // (2 * GRID_SIZE) * 2 * GRID_SIZE  # we want this to be a multiple = 2*GRID_SIZE
-                SCREEN_SIZE = w, h
-                screen = pygame.display.set_mode(SCREEN_SIZE, RESIZABLE)
+                grid = setup.grid_size
+                w = w // grid * grid  # we want a multiple of GRID_SIZE
+                h = h // (2 * grid) * 2 * grid  # we want this to be a multiple = 2*GRID_SIZE
+                setup.screen_size = w, h
+                screen = pygame.display.set_mode(setup.screen_size, RESIZABLE)
                 crabs_screen = get_sub_surfaces(screen)
 
                 setup.must_redraw_display()
@@ -287,12 +331,12 @@ def run(setup):
                     setup.must_redraw_display()
 
                 mouse = pygame.mouse.get_pos()
-                for bar in speed_setters:
+                for bar in slide_bars:
                     if mouse in bar:
                         bar.focus()
 
             if event.type == MOUSEBUTTONUP:
-                for bar in speed_setters:
+                for bar in slide_bars:
                     bar.unfocus()
 
         if setup.redraw_display:
@@ -305,7 +349,7 @@ def run(setup):
             draw_crabs(crabs_screen, setup.crabs, setup.max_time)
 
             # settings part
-            for bar in speed_setters:
+            for bar in slide_bars:
                 bar.render(screen)
 
             pygame.display.flip()
@@ -317,6 +361,9 @@ def run(setup):
 
 class Setup:
     def __init__(self):
+        self.screen_size = (500, 400)
+        self.grid_size = self.screen_size[1] // 16
+
         self.crabs = get_config()
         self.values = [c.speed for c in self.crabs]
         self.max_time = 0
@@ -329,6 +376,7 @@ class Setup:
             pass
 
     def wait_and_occupy(self):
+        """ Used for thread cooperation """
         self._wait_until_free()
         self._modif = True
 
@@ -347,9 +395,9 @@ class Setup:
 
         self.last_frame_time = time()
 
+setup = Setup()
 
 if __name__ == '__main__':
-    setup = Setup()
 
     # pygame interface
     run(setup)
